@@ -28,7 +28,7 @@ std::vector<T> sawWave(int samplingRate, int frequency, double peakToPeak,
 template <typename T>
 std::vector<T> triangleWave(int samplingRate, int frequency, double peakToPeak,
                             double phaseShift) {
-  return welle::SawWave<T>(samplingRate)
+  return welle::TriangleWave<T>(samplingRate)
       .generatePeriod(frequency, peakToPeak, phaseShift);
 }
 

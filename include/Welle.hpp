@@ -9,50 +9,6 @@
 #include <vector>
 
 namespace welle {
-
-inline void checkSamplingRate(const int samplingRate) {
-  if (samplingRate < 1) {
-    throw std::invalid_argument("samplingRate must be >= 1");
-  }
-}
-inline void checkFrequency(const int frequency) {
-  if (frequency < 1) {
-    throw std::invalid_argument("frequency must be >= 1");
-  }
-}
-template <typename T> inline void checkAmplitude(const T amplitude) {
-  constexpr T minAmplitude =
-      std::is_unsigned<T>() || std::is_floating_point<T>() ? 1 : 2;
-  if (amplitude < minAmplitude) {
-    std::string errorMsg = "peak-to-peak amplitude must be >= ";
-    errorMsg += std::to_string(minAmplitude);
-    throw std::invalid_argument(errorMsg);
-  }
-}
-
-/**
- * Nyquist frequency defines max possible frequency
- * to be digitally captured with a given sampling rate
- *
- * @param samplingRate sampling rate (Hz) (must be >=1)
- * @return max possible frequency (Hz)
- */
-inline int nyquistFrequency(const int samplingRate) {
-  checkSamplingRate(samplingRate);
-
-  return samplingRate / 2;
-}
-
-inline void checkFrequencyVsSamplingRate(const int frequency,
-                                         const int samplingRate) {
-  if (frequency > nyquistFrequency(samplingRate)) {
-    throw std::invalid_argument(
-        "frequency must be < samplingRate / 2 (Nyquist frequency)");
-  }
-}
-
-inline int modulo(const int x, const int p) { return ((x % p) + p) % p; }
-
 /**
  * Base class for wave generation
  */
@@ -102,6 +58,38 @@ public:
     return samples;
   }
 
+protected:
+  const int samplingRate;
+  const int dcOffset;
+
+  virtual inline T calculateSampleAtIndex(const int i, const int period,
+                                          const T peakToPeak,
+                                          const double phaseShift) const = 0;
+
+  static inline int modulo(const int x, const int p) {
+    return ((x % p) + p) % p;
+  }
+
+  static inline int phaseShiftToSamplesOffset(const double phaseShift,
+                                              const int period) {
+    return std::fmod(phaseShift, 2 * std::numbers::pi) /
+           (2 * std::numbers::pi) * period;
+  }
+
+private:
+  /**
+   * Nyquist frequency defines max possible frequency
+   * to be digitally captured with a given sampling rate
+   *
+   * @param samplingRate sampling rate (Hz) (must be >=1)
+   * @return max possible frequency (Hz)
+   */
+  static inline int nyquistFrequency(const int samplingRate) {
+    checkSamplingRate(samplingRate);
+
+    return samplingRate / 2;
+  }
+
   /**
    * Calculate how many samples will take a single-period wave with a given
    * frequency and sampling rate
@@ -120,13 +108,32 @@ public:
     return std::ceil(samplingRate / (double)frequency);
   }
 
-protected:
-  const int samplingRate;
-  const int dcOffset;
-
-  virtual inline T calculateSampleAtIndex(const int i, const int period,
-                                          const T peakToPeak,
-                                          const double phaseShift) const = 0;
+  static inline void checkSamplingRate(const int samplingRate) {
+    if (samplingRate < 1) {
+      throw std::invalid_argument("samplingRate must be >= 1");
+    }
+  }
+  static inline void checkFrequency(const int frequency) {
+    if (frequency < 1) {
+      throw std::invalid_argument("frequency must be >= 1");
+    }
+  }
+  static inline void checkAmplitude(const T amplitude) {
+    constexpr T minAmplitude =
+        std::is_unsigned<T>() || std::is_floating_point<T>() ? 1 : 2;
+    if (amplitude < minAmplitude) {
+      std::string errorMsg = "peak-to-peak amplitude must be >= ";
+      errorMsg += std::to_string(minAmplitude);
+      throw std::invalid_argument(errorMsg);
+    }
+  }
+  static inline void checkFrequencyVsSamplingRate(const int frequency,
+                                           const int samplingRate) {
+    if (frequency > nyquistFrequency(samplingRate)) {
+      throw std::invalid_argument(
+          "frequency must be < samplingRate / 2 (Nyquist frequency)");
+    }
+  }
 };
 
 /**
@@ -164,9 +171,11 @@ protected:
     // /2 = [-1, 1]
 
     // apply sigma for correct int conversion
-    const double sign = i < period / 2 ? 1 : -1;
+    const double sign = 2 * i < period ? 1 : -1;
     return (sin(2 * std::numbers::pi * i / period + phaseShift) +
-            this->dcOffset) * peakToPeak / 2 + sign * sigma;
+            this->dcOffset) *
+               peakToPeak / 2 +
+           sign * sigma;
   }
 };
 
@@ -181,8 +190,11 @@ protected:
   inline T calculateSampleAtIndex(const int i, const int period,
                                   const T peakToPeak,
                                   const double phaseShift) const override {
-    (void)phaseShift;
-    return peakToPeak / period * std::abs(modulo(i - period / 2, period));
+    const int shift = this->phaseShiftToSamplesOffset(phaseShift, period);
+
+    return (peakToPeak / period) *
+               std::abs(this->modulo(i - period / 2 + shift, period)) -
+           (1 - this->dcOffset) * peakToPeak / 2;
   }
 };
 
@@ -197,8 +209,11 @@ protected:
   inline T calculateSampleAtIndex(const int i, const int period,
                                   const T peakToPeak,
                                   const double phaseShift) const override {
-    (void)phaseShift;
-    return i < period / 2 ? peakToPeak : 0;
+    const int shift = this->phaseShiftToSamplesOffset(phaseShift, period);
+
+    return ((2 * this->modulo(i + shift, period) < period ? 1 : -1) +
+            this->dcOffset) *
+           peakToPeak / 2;
   }
 };
 
@@ -213,9 +228,11 @@ protected:
   inline T calculateSampleAtIndex(const int i, const int period,
                                   const T peakToPeak,
                                   const double phaseShift) const override {
-    (void)phaseShift;
+    const int shift = this->phaseShiftToSamplesOffset(phaseShift, period);
+
     return 2 * peakToPeak / period *
-           std::abs(modulo(i - period / 4, period) - period / 2);
+               std::abs(this->modulo(i - period / 4 + shift, period) - period / 2) -
+           (1 - this->dcOffset) * peakToPeak / 2;
   }
 };
 
