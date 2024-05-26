@@ -6,6 +6,7 @@
 #include <stdexcept>
 #include <type_traits>
 #include <vector>
+#include <string>
 
 namespace welle {
 
@@ -19,10 +20,12 @@ inline void checkFrequency(const int frequency) {
     throw std::invalid_argument("frequency must be >= 1");
   }
 }
-template <typename T>
-inline void checkAmplitude(const T amplitude) {
-  if (amplitude < 0) {
-    throw std::invalid_argument("amplitude must be positive");
+template <typename T> inline void checkAmplitude(const T amplitude) {
+  constexpr T minAmplitude = std::is_unsigned<T>() || std::is_floating_point<T>() ? 1 : 2;
+  if (amplitude < minAmplitude) {
+    std::string errorMsg = "peak-to-peak amplitude must be >= ";
+    errorMsg += std::to_string(minAmplitude);
+    throw std::invalid_argument(errorMsg);
   }
 }
 
@@ -79,7 +82,7 @@ inline double phaseShift(std::vector<T> wave1, std::vector<T> wave2) {
 
 /**
  * Base class for wave generation
-*/
+ */
 template <typename T> class Wave {
 public:
   explicit Wave(const int samplingRate)
@@ -99,14 +102,15 @@ public:
    * Generate one wave period
    *
    * @param frequency target wave frequency (must be >= 1)
-   * @param amplitude max wave amplitude (must be > 0)
+   * @param peakToPeak max wave peak-to-peak amplitude (must be >= 1 for
+   * unsigned and floating point types and >=2 for signed integer types)
    * @param phaseShift shift wave start in radians
    * @return sine wave one period samples
    */
-  virtual std::vector<T> generatePeriod(const int frequency, const T amplitude,
+  virtual std::vector<T> generatePeriod(const int frequency, const T peakToPeak,
                                         const double phaseShift = 0) const {
     checkFrequency(frequency);
-    checkAmplitude(amplitude);
+    checkAmplitude(peakToPeak);
 
     const int period = calculatePeriodSamplesCount(samplingRate, frequency);
     std::vector<T> samples;
@@ -114,7 +118,7 @@ public:
 
     for (int i = 0; i < period; i++) {
       samples.push_back(
-          calculateSampleAtIndex(i, period, amplitude, phaseShift));
+          calculateSampleAtIndex(i, period, peakToPeak, phaseShift));
     }
 
     return samples;
@@ -143,72 +147,92 @@ protected:
   const int dcOffset;
 
   virtual inline T calculateSampleAtIndex(const int i, const int period,
-                                          const T amplitude,
+                                          const T peakToPeak,
                                           const double phaseShift) const = 0;
 };
 
 /**
  * Sine wave generator
-*/
+ */
 template <typename T> class SineWave : public Wave<T> {
 public:
   using Wave<T>::Wave;
 
 protected:
   inline T calculateSampleAtIndex(const int i, const int period,
-                                  const T amplitude,
+                                  const T peakToPeak,
                                   const double phaseShift) const override {
-    return (sin(2 * std::numbers::pi * i / period + phaseShift) +
-            this->dcOffset) *
-           amplitude / (1 + this->dcOffset);
+    // uint16_t, peakToPeak = 4
+    // sin + dcOffset = [0, 2]
+    // *peakToPeak = [0, 8]
+    // / 2 = [0, 4]
+
+    // uint16_t, peakToPeak = 1
+    // sin + dcOffset = [0, 2]
+    // *peakToPeak = [0, 2]
+    // /2 = [0, 1]
+
+    // int, peakToPeak = 4
+    // sin + dcOffset = [-1, 1]
+    // *peakToPeak = [-4, 4]
+    // /2 = [-2, 2]
+
+    // int, peakToPeak = 2
+    // sin + dcOffset = [-1, 1]
+    // *peakToPeak = [-2, 2]
+    // /2 = [-1, 1]
+    const double sigma = 1e-5; // to properly convert to int
+    const double sinValue = sin(2 * std::numbers::pi * i / period + phaseShift);
+    const int sign = sinValue < 0 ? -1 : 1;
+    return (sinValue + this->dcOffset) * peakToPeak / 2 + sigma * sign;
   }
 };
 
 /**
  * Saw wave generator
-*/
+ */
 template <typename T> class SawWave : public Wave<T> {
 public:
   using Wave<T>::Wave;
 
 protected:
   inline T calculateSampleAtIndex(const int i, const int period,
-                                  const T amplitude,
+                                  const T peakToPeak,
                                   const double phaseShift) const override {
     (void)phaseShift;
-    return amplitude / period * std::abs(this->modulo(i - period / 2, period));
+    return peakToPeak / period * std::abs(this->modulo(i - period / 2, period));
   }
 };
 
 /**
  * Square wave generator
-*/
+ */
 template <typename T> class SquareWave : public Wave<T> {
 public:
   using Wave<T>::Wave;
 
 protected:
   inline T calculateSampleAtIndex(const int i, const int period,
-                                  const T amplitude,
+                                  const T peakToPeak,
                                   const double phaseShift) const override {
     (void)phaseShift;
-    return i < period / 2 ? amplitude : 0;
+    return i < period / 2 ? peakToPeak : 0;
   }
 };
 
 /**
  * Triangle wave generator
-*/
+ */
 template <typename T> class TriangleWave : public Wave<T> {
 public:
   using Wave<T>::Wave;
 
 protected:
   inline T calculateSampleAtIndex(const int i, const int period,
-                                  const T amplitude,
+                                  const T peakToPeak,
                                   const double phaseShift) const override {
     (void)phaseShift;
-    return 2 * amplitude / period *
+    return 2 * peakToPeak / period *
            std::abs(this->modulo(i - period / 4, period) - period / 2);
   }
 };

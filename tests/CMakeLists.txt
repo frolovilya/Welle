@@ -1,17 +1,17 @@
-cmake_minimum_required(VERSION 3.10)
-
-set(CMAKE_BUILD_TYPE Debug)
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-add_compile_options(-Wall -Wextra -pedantic -Werror)
-
-project(WelleTests VERSION 0.1 LANGUAGES CXX)
-
-add_executable(WelleTests Tests.cpp)
+add_executable(WelleTests 
+  TestModule.cpp 
+  FFT.cpp
+  ValidationTests.cpp
+  AmplitudeTests.cpp
+  FrequencyTests.cpp
+  PhaseTests.cpp)
 
 find_package(Boost 1.85.0 REQUIRED COMPONENTS unit_test_framework)
 message("Boost Path: " ${Boost_LIBRARY_DIRS} ", Libraries: " ${Boost_LIBRARIES})
 
-target_include_directories(WelleTests PRIVATE ${Boost_INCLUDE_DIRS})
-target_link_libraries(WelleTests Boost::unit_test_framework)
+find_path(FFTW_HEADER_PATH fftw3.h)
+find_library(FFTW_LIB_PATH fftw3)
+message("FFTW3 Library: " ${FFTW_LIB_PATH})
+
+target_include_directories(WelleTests PRIVATE ${FFTW_HEADER_PATH} ${Boost_INCLUDE_DIRS})
+target_link_libraries(WelleTests ${FFTW_LIB_PATH} Boost::unit_test_framework)
