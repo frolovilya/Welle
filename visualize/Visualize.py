@@ -10,7 +10,7 @@ parser = argparse.ArgumentParser(description='Visualize Welle generated waves')
 parser.add_argument('-w', '--wave', required=True, 
                     choices=['sine', 'square', 'saw', 'triangle'])
 parser.add_argument('-t', '--type', default='double', 
-                    choices=['double', 'uint16_t'])
+                    choices=['double', 'int', 'uint16_t'])
 parser.add_argument('-s', '--samplingRate', required=True, type=int)
 parser.add_argument('-f', '--frequency', required=True, type=int)
 parser.add_argument('-a', '--peakToPeakAmplitude', default=10, type=float)

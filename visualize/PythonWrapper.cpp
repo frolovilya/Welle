@@ -44,15 +44,22 @@ BOOST_PYTHON_MODULE(WelleVisualize) {
   class_<std::vector<uint16_t>>("std::vector<uint16_t>")
       .def(vector_indexing_suite<std::vector<uint16_t>>());
 
+  class_<std::vector<int>>("std::vector<int>")
+      .def(vector_indexing_suite<std::vector<int>>());
+
   def("sineWave_double", sineWave<double>);
   def("sineWave_uint16_t", sineWave<uint16_t>);
+  def("sineWave_int", sineWave<int>);
 
   def("squareWave_double", squareWave<double>);
   def("squareWave_uint16_t", squareWave<uint16_t>);
+  def("squareWave_int", squareWave<int>);
 
   def("sawWave_double", sawWave<double>);
   def("sawWave_uint16_t", sawWave<uint16_t>);
+  def("sawWave_int", sawWave<int>);
 
   def("triangleWave_double", triangleWave<double>);
   def("triangleWave_uint16_t", triangleWave<uint16_t>);
+  def("triangleWave_int", triangleWave<int>);
 }

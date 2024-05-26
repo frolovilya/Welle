@@ -143,9 +143,6 @@ template <typename T> class SineWave : public Wave<T> {
 public:
   using Wave<T>::Wave;
 
-private:
-  static constexpr double sigma = 1e-5;
-
 protected:
   inline T calculateSampleAtIndex(const int i, const int period,
                                   const T peakToPeak,
@@ -170,12 +167,9 @@ protected:
     // *peakToPeak = [-2, 2]
     // /2 = [-1, 1]
 
-    // apply sigma for correct int conversion
-    const double sign = 2 * i < period ? 1 : -1;
     return (sin(2 * std::numbers::pi * i / period + phaseShift) +
             this->dcOffset) *
-               peakToPeak / 2 +
-           sign * sigma;
+               peakToPeak / 2;
   }
 };
 
@@ -192,7 +186,7 @@ protected:
                                   const double phaseShift) const override {
     const int shift = this->phaseShiftToSamplesOffset(phaseShift, period);
 
-    return (peakToPeak / period) *
+    return (peakToPeak / (double)period) *
                std::abs(this->modulo(i - period / 2 + shift, period)) -
            (1 - this->dcOffset) * peakToPeak / 2;
   }
@@ -230,7 +224,7 @@ protected:
                                   const double phaseShift) const override {
     const int shift = this->phaseShiftToSamplesOffset(phaseShift, period);
 
-    return 2 * peakToPeak / period *
+    return 2 * peakToPeak / (double)period *
                std::abs(this->modulo(i - period / 4 + shift, period) - period / 2) -
            (1 - this->dcOffset) * peakToPeak / 2;
   }
