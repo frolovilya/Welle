@@ -35,24 +35,24 @@ Let's start with a basic Sine wave example at low sampling rate:
 ```C++
 // Sine wave with real sample values
 welle::SineWave<double>(1000) // sampled at rate 1000Hz
-    .generatePeriod(100, // with frequency 100Hz
-                    10,  // with amplitude [-5, 5]
+    .generatePeriod(50,  // with frequency 50Hz
+                    32,  // with amplitude [-16, 16]
                     0);  // without phase shift
 ```
 
-![sine1](https://github.com/frolovilya/Welle/assets/271293/835140f1-a595-4869-a1f5-331f6f02698d)
+![sine1_1](https://github.com/frolovilya/Welle/assets/271293/5c67652e-33a0-4325-8854-777807af6551)
 
 If we take some unsigned type like `uint16_t`, then DC offset is added to each sample, so that peak to peak amplitude is now [0, 10]:
 
 ```C++
 // Sine wave with unsigned integer sample values
 welle::SineWave<uint16_t>(1000) // sampled at rate 1000Hz
-    .generatePeriod(100, // with frequency 100Hz
-                    10,  // with amplitude [0, 10]
+    .generatePeriod(50,  // with frequency 50Hz
+                    32,  // with amplitude [0, 32]
                     0);  // without phase shift
 ```
 
-![sine2](https://github.com/frolovilya/Welle/assets/271293/1e44c33a-2cb9-4fb1-89f3-8c884aeb6f1d)
+![sine2_1](https://github.com/frolovilya/Welle/assets/271293/361a5e98-b58b-4d81-bdf6-f2369f9cce10)
 
 High-precision waves are sampled at higher rates. You could see real usage example in [stm32-wave-generator](https://github.com/frolovilya/stm32-wave-generator) and [filter-designer](https://github.com/frolovilya/filter-designer) projects.
 
@@ -80,9 +80,41 @@ welle::SineWave<uint16_t>(48000) // sampled at rate 48kHz
 
 ### Square
 
+All other wave generators share the same API. Let's just visualize supported wave forms:
+
+```C++
+// Square wave with signed integer values
+welle::SineWave<uint16_t>(10000) // sampled at rate 100Hz
+    .generatePeriod(25,   // with frequency 25Hz
+                    100,  // with amplitude [-50, 50]
+                    0);   // without phase shift
+```
+
+![square1](https://github.com/frolovilya/Welle/assets/271293/0c6d8e8c-b7dd-4010-988a-33e811e13db0)
+
 ### Saw
 
+```C++
+// Saw wave with signed integer values
+welle::SineWave<int>(24000) // sampled at rate 24kHz
+    .generatePeriod(22,     // with frequency 22Hz
+                    1000,   // with amplitude [-500, 500]
+                    0);     // without phase shift
+```
+
+![saw2](https://github.com/frolovilya/Welle/assets/271293/a1521d0d-a379-4b7d-88c5-eb8a5dfc5370)
+
 ### Triangle
+
+```C++
+// Triangle wave with unsigned integer values
+welle::SineWave<uint16_t>(1000) // sampled at rate 1kHz
+    .generatePeriod(10,   // with frequency 10Hz
+                    64,   // with amplitude [0, 64]
+                    0);   // without phase shift
+```
+
+![triangle1](https://github.com/frolovilya/Welle/assets/271293/0d072fe9-22d4-4c98-859b-746ef1e339a8)
 
 ## Build
 
@@ -101,6 +133,7 @@ Tests have dependency on [FFTW3](https://www.fftw.org/download.html) and [Boost]
 
 ```sh
 # brew install boost
+# brew install boost-python3
 
 mkdir build; cd build
 cmake ../ -DCMAKE_BUILD_TYPE=Debug
@@ -113,9 +146,7 @@ make
 Images in this README are generated with [Visualize.py](/visualize/Visualize.py) Python wrapper around Welle API:
 
 ```sh
-# brew install boost-python3
-
-# build the project as for running tests
+# build the project in Debug mode first
 
 cd visualize
 /usr/local/bin/pip3.11 install -r requirements.txt
