@@ -37,11 +37,11 @@ public:
    *
    * @param frequency target wave frequency (must be >= 1)
    * @param peakToPeak max wave peak-to-peak amplitude (must be >= 1 for
-   * unsigned and floating point types and >=2 for signed integer types)
+   * unsigned and floating point types and >=2 for signed integer types T)
    * @param phaseShift shift wave start in radians
    * @return sine wave one period samples
    */
-  virtual std::vector<T> generatePeriod(const int frequency, const T peakToPeak,
+  virtual std::vector<T> generatePeriod(const int frequency, const double peakToPeak,
                                         const double phaseShift = 0) const {
     checkFrequency(frequency);
     checkAmplitude(peakToPeak);
@@ -63,13 +63,16 @@ protected:
   const int dcOffset;
 
   virtual inline T calculateSampleAtIndex(const int i, const int period,
-                                          const T peakToPeak,
+                                          const double peakToPeak,
                                           const double phaseShift) const = 0;
 
   static inline int modulo(const int x, const int p) {
     return ((x % p) + p) % p;
   }
 
+  /**
+   * Convert phase shift in radians to offset index inside one period
+  */
   static inline int phaseShiftToSamplesOffset(const double phaseShift,
                                               const int period) {
     return std::fmod(phaseShift, 2 * std::numbers::pi) /
@@ -118,8 +121,8 @@ private:
       throw std::invalid_argument("frequency must be >= 1");
     }
   }
-  static inline void checkAmplitude(const T amplitude) {
-    constexpr T minAmplitude =
+  static inline void checkAmplitude(const double amplitude) {
+    constexpr double minAmplitude =
         std::is_unsigned<T>() || std::is_floating_point<T>() ? 1 : 2;
     if (amplitude < minAmplitude) {
       std::string errorMsg = "peak-to-peak amplitude must be >= ";
@@ -145,7 +148,7 @@ public:
 
 protected:
   inline T calculateSampleAtIndex(const int i, const int period,
-                                  const T peakToPeak,
+                                  const double peakToPeak,
                                   const double phaseShift) const override {
     // uint16_t, peakToPeak = 4
     // sin + dcOffset = [0, 2]
@@ -182,11 +185,11 @@ public:
 
 protected:
   inline T calculateSampleAtIndex(const int i, const int period,
-                                  const T peakToPeak,
+                                  const double peakToPeak,
                                   const double phaseShift) const override {
     const int shift = this->phaseShiftToSamplesOffset(phaseShift, period);
 
-    return (peakToPeak / (double)period) *
+    return (peakToPeak / period) *
                std::abs(this->modulo(i - period / 2 + shift, period)) -
            (1 - this->dcOffset) * peakToPeak / 2;
   }
@@ -201,7 +204,7 @@ public:
 
 protected:
   inline T calculateSampleAtIndex(const int i, const int period,
-                                  const T peakToPeak,
+                                  const double peakToPeak,
                                   const double phaseShift) const override {
     const int shift = this->phaseShiftToSamplesOffset(phaseShift, period);
 
@@ -220,11 +223,11 @@ public:
 
 protected:
   inline T calculateSampleAtIndex(const int i, const int period,
-                                  const T peakToPeak,
+                                  const double peakToPeak,
                                   const double phaseShift) const override {
     const int shift = this->phaseShiftToSamplesOffset(phaseShift, period);
 
-    return 2 * peakToPeak / (double)period *
+    return 2 * peakToPeak / period *
                std::abs(this->modulo(i - period / 4 + shift, period) - period / 2) -
            (1 - this->dcOffset) * peakToPeak / 2;
   }
