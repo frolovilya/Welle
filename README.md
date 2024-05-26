@@ -4,7 +4,7 @@ Multi-purpose header-only periodic wave generation library
 
 ## Usage
 
-The library provides C++ class templates to generate single $2 \pi$ wave periods  of various forms and store them in a vector of user-provided type `T`. So that it's possible to optimize memory usage and conform to hardware limits.
+The library provides C++ class templates to generate single $2 \pi$ wave periods of various forms and store them in a vector of user-provided type `T`. So that it's possible to optimize memory usage and conform to hardware limits.
 
 ```C++
 namespace welle {
@@ -27,6 +27,8 @@ class TriangleWave : public Wave<T>
 
 } // namespace welle
 ```
+
+Given that wave frequency is an amount of periods per second, it's then straightforward to generate samples for any time duration by repeating the result vector.
 
 ### Sine
 
@@ -126,6 +128,12 @@ The library is header only, you may just copy [Welle.hpp](/include/Welle.hpp) in
 mkdir build; cd build
 cmake ../ -DCMAKE_BUILD_TYPE=Release
 make install
+```
+And include header directory in CMake:
+
+```cmake
+find_path(WELLE_HEADER_PATH Welle.hpp)
+target_include_directories(%TARGET_NAME% PUBLIC ${WELLE_HEADER_PATH})
 ```
 
 ### Run Tests
