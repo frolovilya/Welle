@@ -9,7 +9,7 @@ using namespace welle;
 
 BOOST_AUTO_TEST_SUITE(Frequency_test)
 
-constexpr double frequencyTolerance = 0.1; // 10%
+constexpr double frequencyTolerance = 0.05; // 5%
 
 template <typename T>
 void testWaveGeneration(int waveFrequency, int samplingRate, T peakToPeak) {
@@ -17,7 +17,7 @@ void testWaveGeneration(int waveFrequency, int samplingRate, T peakToPeak) {
   auto wave = generator.generatePeriod(waveFrequency, peakToPeak);
 
   vector<T> oneSecond;
-  for (unsigned int i = 0; i <= samplingRate / wave.size(); i++) {
+  for (unsigned int i = 0; i < samplingRate / wave.size(); i++) {
     oneSecond.insert(oneSecond.end(), wave.begin(), wave.end());
   }
 
@@ -52,7 +52,7 @@ BOOST_AUTO_TEST_CASE(generation_test) {
   testWaveGeneration<int8_t>(10, 1000, 2);
   testWaveGeneration<int8_t>(10, 1000, 100);
 
-  testWaveGeneration<int>(10, 1000, 200);
+  testWaveGeneration<int>(10, 1000, 200); 
   testWaveGeneration<double>(10, 1000, 1);
   testWaveGeneration<float>(10, 1000, 1);
 }

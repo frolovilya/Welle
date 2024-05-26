@@ -22,4 +22,5 @@ install(TARGETS ${CMAKE_PROJECT_NAME} FILE_SET public_headers)
 
 if(CMAKE_BUILD_TYPE MATCHES Debug)
   add_subdirectory(tests)
+  add_subdirectory(visualize)
 endif()

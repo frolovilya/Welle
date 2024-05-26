@@ -4,9 +4,9 @@
 #include <cmath>
 #include <numbers>
 #include <stdexcept>
+#include <string>
 #include <type_traits>
 #include <vector>
-#include <string>
 
 namespace welle {
 
@@ -21,7 +21,8 @@ inline void checkFrequency(const int frequency) {
   }
 }
 template <typename T> inline void checkAmplitude(const T amplitude) {
-  constexpr T minAmplitude = std::is_unsigned<T>() || std::is_floating_point<T>() ? 1 : 2;
+  constexpr T minAmplitude =
+      std::is_unsigned<T>() || std::is_floating_point<T>() ? 1 : 2;
   if (amplitude < minAmplitude) {
     std::string errorMsg = "peak-to-peak amplitude must be >= ";
     errorMsg += std::to_string(minAmplitude);
@@ -53,34 +54,6 @@ inline void checkFrequencyVsSamplingRate(const int frequency,
 inline int modulo(const int x, const int p) { return ((x % p) + p) % p; }
 
 /**
- * Find phase shift between two waves of the same length
- *
- * @return phase shift in radians
- */
-template <typename T>
-inline double phaseShift(std::vector<T> wave1, std::vector<T> wave2) {
-  if (wave1.size() != wave2.size()) {
-    throw std::invalid_argument("wave1 and wave2 must be of the same length");
-  }
-
-  // find phase shift
-  double shift = 0;
-  for (unsigned int j = 0; j < wave1.size(); j++) {
-    shift += wave1[j] * wave2[j];
-  }
-  shift /= wave1.size();
-  shift *= 2;
-
-  if (shift > 1) {
-    return 0;
-  } else if (shift < -1) {
-    return 0;
-  } else {
-    return std::acos(shift);
-  }
-}
-
-/**
  * Base class for wave generation
  */
 template <typename T> class Wave {
@@ -97,6 +70,11 @@ public:
   }
 
   virtual ~Wave() {}
+
+  /**
+   * Get sampling rate (Hz) configured for this wave generator
+   */
+  int getSamplingRate() const { return samplingRate; }
 
   /**
    * Generate one wave period
@@ -158,6 +136,9 @@ template <typename T> class SineWave : public Wave<T> {
 public:
   using Wave<T>::Wave;
 
+private:
+  static constexpr double sigma = 1e-5;
+
 protected:
   inline T calculateSampleAtIndex(const int i, const int period,
                                   const T peakToPeak,
@@ -181,10 +162,11 @@ protected:
     // sin + dcOffset = [-1, 1]
     // *peakToPeak = [-2, 2]
     // /2 = [-1, 1]
-    const double sigma = 1e-5; // to properly convert to int
-    const double sinValue = sin(2 * std::numbers::pi * i / period + phaseShift);
-    const int sign = sinValue < 0 ? -1 : 1;
-    return (sinValue + this->dcOffset) * peakToPeak / 2 + sigma * sign;
+
+    // apply sigma for correct int conversion
+    const double sign = i < period / 2 ? 1 : -1;
+    return (sin(2 * std::numbers::pi * i / period + phaseShift) +
+            this->dcOffset) * peakToPeak / 2 + sign * sigma;
   }
 };
 
@@ -200,7 +182,7 @@ protected:
                                   const T peakToPeak,
                                   const double phaseShift) const override {
     (void)phaseShift;
-    return peakToPeak / period * std::abs(this->modulo(i - period / 2, period));
+    return peakToPeak / period * std::abs(modulo(i - period / 2, period));
   }
 };
 
@@ -233,7 +215,7 @@ protected:
                                   const double phaseShift) const override {
     (void)phaseShift;
     return 2 * peakToPeak / period *
-           std::abs(this->modulo(i - period / 4, period) - period / 2);
+           std::abs(modulo(i - period / 4, period) - period / 2);
   }
 };
 

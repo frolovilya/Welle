@@ -21,7 +21,7 @@ void testSamplingWithPhaseShift(const Wave<T> &generator,
   BOOST_TEST(abs(wave[0] - expectedFirstSampleValue) <= diffTolerance);
 }
 
-BOOST_AUTO_TEST_CASE(phase_shift_sampling_test) {
+BOOST_AUTO_TEST_CASE(phase_shift_test) {
   const int samplingRate = 100;
 
   // whole period is 2 * Pi
