@@ -44,7 +44,7 @@ welle::SineWave<double>(1000) // sampled at rate 1000Hz
 
 ![sine1_1](https://github.com/frolovilya/Welle/assets/271293/5c67652e-33a0-4325-8854-777807af6551)
 
-If we take some unsigned type like `uint16_t`, then DC offset is added to each sample, so that peak to peak amplitude is now [0, 10]:
+If we take some unsigned type like `uint16_t`, then DC offset is added to each sample, so that peak to peak amplitude is now [0, 32]:
 
 ```C++
 // Sine wave with unsigned integer sample values
