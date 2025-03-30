@@ -142,11 +142,12 @@ Tests have dependency on [FFTW3](https://www.fftw.org/download.html) and [Boost]
 ```sh
 # brew install boost
 # brew install boost-python3
+# brew install fftw
 
 mkdir build; cd build
 cmake ../ -DCMAKE_BUILD_TYPE=Debug
 make
-./test/WelleTests
+./tests/WelleTests
 ```
 
 ### Visualize
@@ -157,6 +158,7 @@ Images in this README are generated with [Visualize.py](/visualize/Visualize.py)
 # build the project in Debug mode first
 
 cd visualize
-/usr/local/bin/pip3.11 install -r requirements.txt
-/usr/local/bin/python3.11 Visualize.py -h
+python3 -m venv welle
+welle/bin/pip3 install -r requirements.txt
+welle/bin/python3 Visualize.py -h
 ```
